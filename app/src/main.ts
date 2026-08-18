@@ -1,6 +1,6 @@
 import "./style.css";
 import { createMap, fitToBuses, setBuses } from "./map";
-import { fetchBuses, type BusesResponse } from "./api";
+import { fetchBuses, type BusesResponse, type BusFeature } from "./api";
 
 const POLL_MS = 20_000;
 const STORAGE_KEY = "formiga-bus:linha";
@@ -10,6 +10,9 @@ const statusBar = document.querySelector<HTMLDivElement>("#status-bar")!;
 const filterInput = document.querySelector<HTMLInputElement>("#filter")!;
 const filterClear = document.querySelector<HTMLButtonElement>("#filter-clear")!;
 const emptyState = document.querySelector<HTMLDivElement>("#empty-state")!;
+const busPanel = document.querySelector<HTMLDivElement>("#bus-panel")!;
+const busPanelBody = document.querySelector<HTMLDListElement>("#bus-panel-body")!;
+const busPanelClose = document.querySelector<HTMLButtonElement>("#bus-panel-close")!;
 
 let currentLinha = localStorage.getItem(STORAGE_KEY) ?? "";
 filterInput.value = currentLinha;
@@ -20,6 +23,31 @@ let pollTimer: number | undefined;
 let debounceTimer: number | undefined;
 
 map.on("load", () => load(true));
+
+map.on("mouseenter", "buses", () => (map.getCanvas().style.cursor = "pointer"));
+map.on("mouseleave", "buses", () => (map.getCanvas().style.cursor = ""));
+map.on("click", "buses", (e) => {
+  const feature = e.features?.[0] as unknown as BusFeature | undefined;
+  if (feature) showBusPanel(feature);
+});
+map.on("click", (e) => {
+  const hit = map.queryRenderedFeatures(e.point, { layers: ["buses"] });
+  if (hit.length === 0) busPanel.hidden = true;
+});
+
+function showBusPanel(feature: BusFeature): void {
+  const { id, linha, vel, ts } = feature.properties;
+  const ageS = Math.max(0, Math.round(Date.now() / 1000 - ts));
+  busPanelBody.innerHTML = `
+    <dt>linha</dt><dd>${linha || "—"}</dd>
+    <dt>veículo</dt><dd>${id}</dd>
+    <dt>velocidade</dt><dd>${Math.round(vel)} km/h</dd>
+    <dt>atualizado</dt><dd>há ${ageS}s</dd>
+  `;
+  busPanel.hidden = false;
+}
+
+busPanelClose.addEventListener("click", () => (busPanel.hidden = true));
 
 async function load(fit: boolean): Promise<void> {
   inFlight?.abort();
