@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.transform import Bus, drop_stale, latest_per_vehicle, line_counts, parse_records, to_geojson
+from app.transform import Bus, drop_stale, parse_records, to_geojson
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "sample.json").read_text(encoding="utf-8"))
 
@@ -38,14 +38,6 @@ def test_parse_records_mantem_valido_com_velocidade_ausente():
     assert buses[0].ts == int(datetime(2026, 8, 17, 13, 0, 0, tzinfo=timezone.utc).timestamp())
 
 
-def test_latest_per_vehicle_mantem_maior_ts():
-    a_velho = Bus(id="A", linha="100", lat=-22.9, lon=-43.2, vel=0, ts=100)
-    a_novo = Bus(id="A", linha="100", lat=-22.9, lon=-43.2, vel=10, ts=200)
-    b = Bus(id="B", linha="200", lat=-22.9, lon=-43.2, vel=5, ts=150)
-    result = latest_per_vehicle([a_velho, b, a_novo])
-    assert sorted(result, key=lambda x: x.id) == [a_novo, b]
-
-
 def test_drop_stale_remove_quem_nao_transmite():
     fresco = Bus(id="A", linha="100", lat=-22.9, lon=-43.2, vel=0, ts=1000)
     velho = Bus(id="B", linha="100", lat=-22.9, lon=-43.2, vel=0, ts=700)
@@ -60,12 +52,3 @@ def test_to_geojson_arredonda_coordenadas():
     feat = geo["features"][0]
     assert feat["geometry"]["coordinates"] == [-43.1729, -22.90681]
     assert feat["properties"] == {"id": "A", "linha": "554", "vel": 12.3, "ts": 1000}
-
-
-def test_line_counts_ignora_pseudo_linhas():
-    buses = [
-        Bus(id="A", linha="554", lat=0, lon=0, vel=0, ts=0),
-        Bus(id="B", linha="554", lat=0, lon=0, vel=0, ts=0),
-        Bus(id="C", linha="GARAGEM", lat=0, lon=0, vel=0, ts=0),
-    ]
-    assert line_counts(buses) == [{"linha": "554", "count": 2}]

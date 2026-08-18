@@ -6,7 +6,7 @@ import httpx
 
 from . import config
 from .sppo_client import fetch_positions
-from .transform import Bus, drop_stale, line_counts, parse_records, to_geojson
+from .transform import Bus, drop_stale, parse_records, to_geojson
 
 
 class BusStore:
@@ -18,8 +18,6 @@ class BusStore:
         self._by_id: dict[str, Bus] = {}
         self.fetched_at: datetime | None = None
         self.source_ok = False
-        self.error: str | None = None
-        self._track_cache: dict[tuple[str, int], tuple[float, dict]] = {}
 
     def _snapshot(self) -> list[Bus]:
         return list(self._by_id.values())
@@ -46,9 +44,6 @@ class BusStore:
         geo.update(self._envelope())
         return geo
 
-    def get_lines(self) -> dict:
-        return {"lines": line_counts(self._snapshot()), **self._envelope()}
-
     def health(self) -> dict:
         age = self._age_s()
         return {
@@ -73,29 +68,8 @@ class BusStore:
                 self._by_id = {b.id: b for b in fresh}
                 self.fetched_at = datetime.now(timezone.utc)
                 self.source_ok = True
-                self.error = None
                 backoff = config.POLL_INTERVAL_S
-            except Exception as e:
+            except Exception:
                 self.source_ok = False
-                self.error = str(e)
                 backoff = min(backoff * 2, config.POLL_MAX_BACKOFF_S)
             await asyncio.sleep(backoff)
-
-    async def get_track(self, client: httpx.AsyncClient, ordem: str, minutes: int) -> dict:
-        key = (ordem, minutes)
-        cached = self._track_cache.get(key)
-        now = time.time()
-        if cached and now - cached[0] < config.TRACK_CACHE_TTL_S:
-            return cached[1]
-        raw = await fetch_positions(client, minutes * 60)
-        pontos = sorted((b for b in parse_records(raw) if b.id == ordem), key=lambda b: b.ts)
-        geo = {
-            "type": "Feature",
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [[round(b.lon, 5), round(b.lat, 5)] for b in pontos],
-            },
-            "properties": {"id": ordem, "points": len(pontos)},
-        }
-        self._track_cache[key] = (now, geo)
-        return geo

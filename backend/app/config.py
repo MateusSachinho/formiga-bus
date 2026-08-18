@@ -7,5 +7,4 @@ FETCH_WINDOW_S = int(os.getenv("FETCH_WINDOW_S", "90"))
 STALE_AFTER_S = int(os.getenv("STALE_AFTER_S", "180"))
 STALE_ENVELOPE_S = int(os.getenv("STALE_ENVELOPE_S", "90"))
 POLL_MAX_BACKOFF_S = int(os.getenv("POLL_MAX_BACKOFF_S", "120"))
-TRACK_CACHE_TTL_S = int(os.getenv("TRACK_CACHE_TTL_S", "60"))
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",")]

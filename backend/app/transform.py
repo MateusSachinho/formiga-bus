@@ -10,9 +10,6 @@ from datetime import datetime
 RIO_LAT_MIN, RIO_LAT_MAX = -23.1, -22.7
 RIO_LON_MIN, RIO_LON_MAX = -43.8, -43.1
 
-# servico usado para status operacional, não é linha de verdade (ver docs/api-notes.md)
-NON_ROUTE_SERVICOS = {"GARAGEM", "MANUTENCAO", "TREINO", "FORA DE OP", "RESERVADO", "ESPECIAL"}
-
 
 @dataclass(frozen=True)
 class Bus:
@@ -52,15 +49,6 @@ def parse_records(raw: list[dict]) -> list[Bus]:
     return buses
 
 
-def latest_per_vehicle(buses: list[Bus]) -> list[Bus]:
-    latest: dict[str, Bus] = {}
-    for b in buses:
-        cur = latest.get(b.id)
-        if cur is None or b.ts > cur.ts:
-            latest[b.id] = b
-    return list(latest.values())
-
-
 def drop_stale(buses: list[Bus], max_age_s: int, now: int) -> list[Bus]:
     return [b for b in buses if now - b.ts <= max_age_s]
 
@@ -77,12 +65,3 @@ def to_geojson(buses: list[Bus]) -> dict:
             for b in buses
         ],
     }
-
-
-def line_counts(buses: list[Bus]) -> list[dict]:
-    counts: dict[str, int] = {}
-    for b in buses:
-        if b.linha in NON_ROUTE_SERVICOS:
-            continue
-        counts[b.linha] = counts.get(b.linha, 0) + 1
-    return [{"linha": linha, "count": n} for linha, n in sorted(counts.items())]
