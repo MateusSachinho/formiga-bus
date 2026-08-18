@@ -1,5 +1,20 @@
 # Decisões técnicas
 
+## 2026-08-18 — Timestamps da API rotulados como UTC ('Z') mas são hora de Brasília
+
+Ao rodar o backend (Fase 1) contra a API real, `vehicles` ficava sempre 0 no
+`/health`. Causa: `datetime`/`datetime_envio`/`datetime_servidor` trazem
+sufixo `Z` (UTC), mas o valor já é America/Sao_Paulo (UTC-3). Confirmado
+comparando os três campos, em vários registros, contra o relógio UTC real —
+os três batem ~3h atrás de forma consistente. Interpretar literalmente como
+UTC fazia todo ônibus nascer "3h no passado" e o `drop_stale` (180s) zerava
+a frota a cada ciclo.
+
+**Decisão:** `transform._parse_ts` troca `Z` por `-03:00` (não `+00:00`) ao
+converter para epoch. Brasil aboliu horário de verão em 2019, então UTC-3
+fixo é seguro — não precisa de `zoneinfo`/tabela de fusos para isso.
+Detalhes e evidência em `docs/api-notes.md`, seção 2.1.
+
 ## 2026-08-17 — Schema real da API diverge do ROTEIRO.md
 
 O ROTEIRO.md foi escrito lendo o código de referência, sem acesso de rede.

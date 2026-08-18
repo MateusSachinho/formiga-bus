@@ -100,6 +100,27 @@ já previsto no ROTEIRO, é necessário e não paranoia.**
 
 ---
 
+## 2.1. Achado feito ao testar o backend (Fase 1): os timestamps mentem sobre o fuso
+
+Descoberto rodando o backend de verdade contra a API: **`datetime`,
+`datetime_envio` e `datetime_servidor` vêm com sufixo `Z` (UTC), mas o valor
+já está em horário de Brasília (America/Sao_Paulo, UTC-3).** Comparando os
+três campos com o relógio UTC real da máquina, os três batem consistentemente
+~3h "no passado" se interpretados literalmente como UTC — `datetime_servidor`
+(que deveria ser quase igual a "agora", já que é o instante de recebimento)
+ficava ~10.814s atrás do UTC real, ou seja, quase exatamente 3h.
+
+**Isso não é side-effect de fuso da máquina que roda o backend** — o parsing
+usa `datetime.fromisoformat` que respeita o offset embutido na string, então
+o bug é da própria API rotulando errado o campo.
+
+**Consequência:** se não corrigido, todo ônibus nasce "3h no passado" e o
+`drop_stale` (janela de 180s) descarta a frota inteira a cada poll —
+`vehicles: 0` sempre. `transform.py` corrige isso trocando o `Z` por
+`-03:00` em vez de `+00:00` ao converter para epoch. Ver `docs/decisions.md`.
+
+---
+
 ## 3. Pendências (não pulei por preguiça — é a regra "não inventar dados")
 
 - **Só testei um horário** (noite, pós-pico, 2026-08-17 ~20:47 BRT). A Fase 0
