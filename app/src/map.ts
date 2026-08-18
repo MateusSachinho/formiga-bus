@@ -1,6 +1,15 @@
-import { AttributionControl, GeoJSONSource, LngLatBounds, MapLibreMap } from "maplibre-gl";
+import { AttributionControl, GeoJSONSource, LngLatBounds, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { BusesResponse } from "./api";
+
+// A detecção automática do worker do maplibre-gl quebra em dev e em build (pending pra
+// sempre). Um `?url` no worker também não bastava: esse arquivo faz `import` de um
+// "maplibre-gl-shared.mjs" irmão que o Vite não empacota junto por trás de um `?url`
+// (é copiado cru, sem analisar os imports internos). Copiei os dois pra public/maplibre/
+// e aponto direto pro arquivo estático — sem depender de nenhuma mágica de bundler.
+// Se atualizar a versão do maplibre-gl, recopiar de node_modules/maplibre-gl/dist/.
+// Ver docs/decisions.md.
+setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 const RIO_CENTER: [number, number] = [-43.1729, -22.9068];
 // MapLibre não substitui o token {r} (é uma convenção do Leaflet, não do TileJSON);

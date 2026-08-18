@@ -13,13 +13,33 @@ que o maplibre-gl v6 instancia seu worker (`new Worker(new URL(...), {type:
 raster (basemap) não dependem do worker e renderizam normal, mascarando o
 problema até alguém realmente olhar pros pontos.
 
-**Decisão:** `app/vite.config.ts` com `optimizeDeps.exclude: ["maplibre-gl"]`.
-Resolve porque tira o maplibre-gl do pré-bundle do esbuild, deixando o
-`import` original (que o próprio maplibre-gl já empacota corretamente)
-intacto. Confirmado ao vivo: os 2700+ pontinhos azuis renderizam depois do
-fix. Isso é um problema conhecido de bundlers com o worker do maplibre-gl —
-se atualizar a versão do pacote no futuro, testar de novo antes de assumir
-que ainda é necessário.
+**Decisão (dev):** `app/vite.config.ts` com `optimizeDeps.exclude: ["maplibre-gl"]`.
+Resolve o dev server porque tira o maplibre-gl do pré-bundle do esbuild.
+
+**Mesmo bug, causa diferente, no build de produção.** Depois de publicar no
+Vercel, o mesmo sintoma voltou (pontos não renderizam, `map.loaded()` preso
+em `false`) mesmo com o worker resolvendo em runtime — tentei apontar
+explicitamente com `setWorkerUrl()` + `import ... from
+"maplibre-gl/dist/maplibre-gl-worker.mjs?url"`, e ainda quebrava. Causa
+real: o arquivo `maplibre-gl-worker.mjs` do próprio pacote faz `import` de
+um `./maplibre-gl-shared.mjs` **irmão** (482KB, o runtime principal
+compartilhado). Um import `?url` no Vite copia o arquivo cru como asset,
+sem analisar `import`s internos — o irmão nunca ia para `dist/assets/`. O
+worker tentava importar um arquivo inexistente, o `vite preview` (e o
+Vercel) respondem com fallback de SPA (**200 com o `index.html`**, não 404)
+pra qualquer asset não encontrado, e o navegador tentava executar HTML como
+módulo ES — falha silenciosa, sem nada no console da aba principal (é
+dentro do worker, contexto separado).
+
+**Decisão (build/prod):** copiar os dois arquivos —
+`maplibre-gl-worker.mjs` e `maplibre-gl-shared.mjs` — de
+`node_modules/maplibre-gl/dist/` pra `app/public/maplibre/`, preservando a
+relação de irmãos, e `setWorkerUrl("/maplibre/maplibre-gl-worker.mjs")` em
+`map.ts`. Arquivo estático servido cru pelo Vite, sem nenhuma mágica de
+bundler no meio. Confirmado com `vite preview` local rodando o build de
+produção de verdade: 2192 pontos renderizando. **Se atualizar a versão do
+maplibre-gl, recopiar os dois arquivos** — não há script automatizando
+isso ainda (YAGNI enquanto for só um `cp` ocasional).
 
 ## 2026-08-18 — Frontend sem framework (vanilla TS, não React)
 
