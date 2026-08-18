@@ -1,9 +1,10 @@
 import "./style.css";
-import { createMap, fitToBuses, setBuses } from "./map";
+import { createMap, DEFAULT_BRIGHTNESS, fitToBuses, setBuses } from "./map";
 import { fetchBuses, type BusesResponse, type BusFeature } from "./api";
 
 const POLL_MS = 20_000;
 const STORAGE_KEY = "formiga-bus:linha";
+const STORAGE_KEY_BRIGHTNESS = "formiga-bus:brilho";
 
 const map = createMap("map");
 const statusBar = document.querySelector<HTMLDivElement>("#status-bar")!;
@@ -13,6 +14,16 @@ const emptyState = document.querySelector<HTMLDivElement>("#empty-state")!;
 const busPanel = document.querySelector<HTMLDivElement>("#bus-panel")!;
 const busPanelBody = document.querySelector<HTMLDListElement>("#bus-panel-body")!;
 const busPanelClose = document.querySelector<HTMLButtonElement>("#bus-panel-close")!;
+const brightnessInput = document.querySelector<HTMLInputElement>("#brightness")!;
+
+const savedBrightness = parseFloat(localStorage.getItem(STORAGE_KEY_BRIGHTNESS) ?? String(DEFAULT_BRIGHTNESS));
+brightnessInput.value = String(savedBrightness);
+
+brightnessInput.addEventListener("input", () => {
+  const value = Number(brightnessInput.value);
+  map.setPaintProperty("basemap", "raster-brightness-min", value);
+  localStorage.setItem(STORAGE_KEY_BRIGHTNESS, String(value));
+});
 
 let currentLinha = localStorage.getItem(STORAGE_KEY) ?? "";
 filterInput.value = currentLinha;
@@ -22,7 +33,10 @@ let inFlight: AbortController | null = null;
 let pollTimer: number | undefined;
 let debounceTimer: number | undefined;
 
-map.on("load", () => load(true));
+map.on("load", () => {
+  map.setPaintProperty("basemap", "raster-brightness-min", savedBrightness);
+  load(true);
+});
 
 map.on("mouseenter", "buses", () => (map.getCanvas().style.cursor = "pointer"));
 map.on("mouseleave", "buses", () => (map.getCanvas().style.cursor = ""));

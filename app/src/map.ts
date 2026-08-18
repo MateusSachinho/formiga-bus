@@ -12,6 +12,7 @@ import type { BusesResponse } from "./api";
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 const RIO_CENTER: [number, number] = [-43.1729, -22.9068];
+export const DEFAULT_BRIGHTNESS = 0.06;
 // MapLibre não substitui o token {r} (é uma convenção do Leaflet, não do TileJSON);
 // usar {z}/{x}/{y} liso evita pedir um arquivo com "{r}" literal no nome.
 const CARTO_DARK = [
@@ -51,7 +52,9 @@ export function createMap(container: string | HTMLElement): MapLibreMap {
           // 1 multiplica a imagem inteira por esse fator (escurece tudo, labels
           // inclusive; tentativa anterior quebrada). raster-brightness-min sozinho só
           // levanta o piso preto, clareando fundo/ruas sem afetar o topo já claro.
-          paint: { "raster-brightness-min": 0.06 },
+          // Ajustável ao vivo pelo slider de brilho (ver main.ts) — esse é só o valor
+          // inicial antes de aplicar a preferência salva.
+          paint: { "raster-brightness-min": DEFAULT_BRIGHTNESS },
         },
         {
           id: "buses",
