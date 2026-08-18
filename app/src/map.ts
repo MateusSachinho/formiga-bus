@@ -40,7 +40,19 @@ export function createMap(container: string | HTMLElement): MapLibreMap {
         buses: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
       },
       layers: [
-        { id: "basemap", type: "raster", source: "basemap" },
+        {
+          id: "basemap",
+          type: "raster",
+          source: "basemap",
+          // ponytail: contraste via paint do raster em vez de trocar de tile provider —
+          // CARTO dark_all fica "chapado" (ruas quase somem no fundo escuro, problema
+          // reportado por usuário). Shader do MapLibre: output = brightness-min +
+          // pixel*(brightness-max - brightness-min) — mexer no brightness-max ABAIXO de
+          // 1 multiplica a imagem inteira por esse fator (escurece tudo, labels
+          // inclusive; tentativa anterior quebrada). raster-brightness-min sozinho só
+          // levanta o piso preto, clareando fundo/ruas sem afetar o topo já claro.
+          paint: { "raster-brightness-min": 0.06 },
+        },
         {
           id: "buses",
           type: "circle",
