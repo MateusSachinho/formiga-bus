@@ -30,9 +30,9 @@ Aproveitar dela: a fonte de dados, o tratamento de lat/lon com vírgula, a conve
 |---|---|---|
 | Backend | Python 3.11 + FastAPI + httpx | Reaproveita a lógica de parsing da referência; precisa existir (ver abaixo) |
 | Mapa | MapLibre GL JS | Open source, sem chave, e renderiza milhares de pontos em WebGL |
-| Frontend | React 18 + TypeScript + Vite | Padrão, e o Capacitor empacota direto |
-| APK | Capacitor 6 (`@capacitor/android`) | Envolve o mesmo build web; não precisa reescrever nada |
-| Estado | Zustand (ou `useState` + context se ficar simples demais) | Sem Redux |
+| Frontend | TypeScript vanilla + Vite | Uma tela (mapa + busca + status bar), sem rotas, sem árvore de componentes — framework só adicionaria peso de bundle contra o requisito de carregar rápido. Ver `docs/decisions.md`. |
+| APK | Capacitor 6 (`@capacitor/android`) | Envolve o mesmo build web; não precisa reescrever nada, framework ou não |
+| Estado | módulo JS com variáveis + funções, sem lib | Não há estado compartilhado entre telas para justificar Zustand/Redux |
 | Testes | pytest (backend), Vitest (frontend) | — |
 
 ### Por que existe um backend (não é opcional)

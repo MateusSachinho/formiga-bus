@@ -1,0 +1,110 @@
+:root {
+  --void: #0a0d13;
+  --surface: #131820;
+  --surface-2: #1c232e;
+  --hairline: #29323f;
+  --ink: #e8ecf3;
+  --ink-dim: #7e889b;
+  --bus: #2e7bff;
+  --bus-glow: #7fb3ff;
+  --warn: #ff8a4c;
+  --live: #3dd9a4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#map {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#status-bar {
+  position: fixed;
+  top: env(safe-area-inset-top, 0);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+  background: linear-gradient(to bottom, rgba(10, 13, 19, 0.85), transparent);
+  text-align: center;
+  pointer-events: none;
+}
+
+#status-bar.stale {
+  color: var(--warn);
+}
+
+#status-bar .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--live);
+  margin-right: 6px;
+}
+
+#status-bar.stale .dot {
+  background: var(--warn);
+}
+
+#search-bar {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 0);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
+}
+
+#filter {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 16px;
+  padding: 12px 14px;
+}
+
+#filter:focus {
+  outline: 2px solid var(--bus);
+}
+
+#filter-clear {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 20px;
+  width: 44px;
+}
+
+#empty-state {
+  position: fixed;
+  bottom: 84px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  text-align: center;
+}

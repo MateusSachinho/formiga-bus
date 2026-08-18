@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0A0D13" />
+    <title>formiga-bus</title>
+  </head>
+  <body>
+    <div id="status-bar">procurando ônibus…</div>
+    <div id="map"></div>
+    <div id="search-bar">
+      <input id="filter" type="search" inputmode="text" autocomplete="off" enterkeyhint="search"
+        placeholder="linha, ex: 554" aria-label="filtrar por linha" />
+      <button id="filter-clear" aria-label="limpar filtro" hidden>&times;</button>
+    </div>
+    <div id="empty-state" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
