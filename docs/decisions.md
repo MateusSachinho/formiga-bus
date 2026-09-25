@@ -1,5 +1,55 @@
 # Decisões técnicas
 
+## 2026-09-25 — Basemap trocado para OSM vetorial (OpenFreeMap liberty)
+
+Primeira rodada com usuários reais segurando o app: a crítica mais forte foi que
+**o mapa é pobre em detalhes e difícil de enxergar**. Procede — o CARTO
+`dark_all` é um estilo minimalista de propósito (poucos nomes de rua, sem POI)
+servido como raster de 256px sem variante retina, ou seja, borrado justamente
+no celular, que é o alvo do app. O slider de brilho da sessão anterior tratava
+o sintoma (mapa escuro demais) e não a causa (mapa sem informação).
+
+**Decisão:** `style` passa a ser a URL de estilo vetorial
+`https://tiles.openfreemap.org/styles/liberty` — dados OpenStreetMap com o
+visual do mapa clássico do openstreetmap.org, nítido em qualquer zoom e
+densidade de tela (sprites servidos em @2x), com nome de rua, bairro e POI. Sem
+chave de API, sem limite de requisições, sem custo.
+
+**Por que não `tile.openstreetmap.org` direto**, que era o pedido inicial: são
+tiles 256px sem versão retina (mantinha o borrão no celular) e a política de uso
+da OSMF proíbe distribuir aplicativo usando esses tiles — bateria de frente com
+a Fase 6 (APK) do ROTEIRO.
+
+**Consequências:**
+- Com style por URL não dá pra declarar a fonte `buses` no construtor do mapa —
+  o estilo só existe depois do `load`. A camada saiu para `addBusLayer(map)`,
+  chamada de dentro do `map.on("load")` em `main.ts`. Handlers de camada
+  (`map.on("click", "buses", ...)`) podem continuar registrados antes disso:
+  MapLibre resolve a camada na hora do evento. Confirmado ao vivo.
+- **O slider de brilho foi removido** (HTML, CSS, JS e a chave
+  `formiga-bus:brilho`). Ele operava sobre `raster-brightness-min` e não existe
+  mais camada raster. Era muleta do basemap escuro; com o mapa novo perdeu o
+  motivo de existir. A chave órfã no `localStorage` de quem já usou é
+  inofensiva — sem migração.
+- Pontos ganharam halo branco (`circle-stroke-color: #ffffff`, 1.5px, 0.9) no
+  lugar do stroke azul-claro a 0.35, que era desenhado pra fundo escuro e sumia
+  entre ruas coloridas.
+- A `#status-bar` virou pílula sólida (mesmo padrão de card do `#empty-state`).
+  O gradiente que terminava transparente era legível no escuro e sumiu no mapa
+  claro — confirmado visualmente antes de corrigir.
+- A atribuição foi para o canto **superior** direito: no padrão (inferior
+  direito) a barra de busca cobre o controle, e o OpenFreeMap exige atribuição
+  visível. O canto de cima vagou justamente com a saída do slider.
+- **O worker do maplibre virou crítico pro mapa inteiro.** Com basemap raster,
+  uma falha do worker derrubava só os pontos (foi assim que os dois bugs de
+  bundler se manifestaram); com tiles vetoriais, derruba tudo. O `setWorkerUrl`
+  apontando pra `public/maplibre/` continua obrigatório, e o teste no build de
+  produção (`npm run build && npm run preview`) deixou de ser opcional.
+
+Validado ao vivo em dev e no build de produção: 3.100+ ônibus renderizando,
+filtro por linha, painel de detalhe e `fitBounds` funcionando, zero erro no
+console, todas as requisições do estilo/sprite/fonte em 200.
+
 ## 2026-08-18 — Vite pré-bundlando maplibre-gl trava o worker pra sempre
 
 Rodando o app de verdade no navegador (não só `tsc --noEmit`): o mapa carregava,

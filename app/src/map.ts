@@ -8,19 +8,16 @@ import type { BusesResponse } from "./api";
 // (é copiado cru, sem analisar os imports internos). Copiei os dois pra public/maplibre/
 // e aponto direto pro arquivo estático — sem depender de nenhuma mágica de bundler.
 // Se atualizar a versão do maplibre-gl, recopiar de node_modules/maplibre-gl/dist/.
-// Ver docs/decisions.md.
+// Ver docs/decisions.md. Com basemap vetorial o worker virou crítico pro mapa INTEIRO
+// (o raster antigo não dependia dele; só os pontos quebravam).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 const RIO_CENTER: [number, number] = [-43.1729, -22.9068];
-export const DEFAULT_BRIGHTNESS = 0.06;
-// MapLibre não substitui o token {r} (é uma convenção do Leaflet, não do TileJSON);
-// usar {z}/{x}/{y} liso evita pedir um arquivo com "{r}" literal no nome.
-const CARTO_DARK = [
-  "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-  "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-  "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-  "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-];
+// Dados OpenStreetMap, tiles vetoriais, sem chave e sem limite (openfreemap.org).
+// Vetorial em vez de raster porque o alvo é celular: nítido em qualquer densidade de
+// tela e zoom, com nome de rua e POI — o CARTO dark_all era 256px sem retina e
+// minimalista de propósito, que foi exatamente a reclamação dos testadores.
+const STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 
 export function createMap(container: string | HTMLElement): MapLibreMap {
   return new MapLibreMap({
@@ -28,50 +25,33 @@ export function createMap(container: string | HTMLElement): MapLibreMap {
     center: RIO_CENTER,
     zoom: 11,
     attributionControl: false,
-    style: {
-      version: 8,
-      sources: {
-        basemap: {
-          type: "raster",
-          tiles: CARTO_DARK,
-          tileSize: 256,
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        },
-        buses: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
-      },
-      layers: [
-        {
-          id: "basemap",
-          type: "raster",
-          source: "basemap",
-          // ponytail: contraste via paint do raster em vez de trocar de tile provider —
-          // CARTO dark_all fica "chapado" (ruas quase somem no fundo escuro, problema
-          // reportado por usuário). Shader do MapLibre: output = brightness-min +
-          // pixel*(brightness-max - brightness-min) — mexer no brightness-max ABAIXO de
-          // 1 multiplica a imagem inteira por esse fator (escurece tudo, labels
-          // inclusive; tentativa anterior quebrada). raster-brightness-min sozinho só
-          // levanta o piso preto, clareando fundo/ruas sem afetar o topo já claro.
-          // Ajustável ao vivo pelo slider de brilho (ver main.ts) — esse é só o valor
-          // inicial antes de aplicar a preferência salva.
-          paint: { "raster-brightness-min": DEFAULT_BRIGHTNESS },
-        },
-        {
-          id: "buses",
-          type: "circle",
-          source: "buses",
-          paint: {
-            "circle-color": "#2E7BFF",
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 13, 5, 16, 8],
-            "circle-opacity": 0.92,
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "#7FB3FF",
-            "circle-stroke-opacity": 0.35,
-          },
-        },
-      ],
+    style: STYLE_URL,
+    // OpenFreeMap exige atribuição visível (OpenFreeMap / OpenMapTiles / OpenStreetMap)
+    // e o estilo já a traz nas suas fontes. Canto superior direito porque no padrão
+    // (inferior direito) a barra de busca cobre o controle — o canto de cima vagou
+    // quando o slider de brilho saiu.
+  }).addControl(new AttributionControl({ compact: true }), "top-right");
+}
+
+// Com style por URL não dá pra declarar a fonte/camada dos ônibus no construtor —
+// o estilo só existe depois do `load`. Chamar uma vez, de dentro do `map.on("load")`.
+export function addBusLayer(map: MapLibreMap): void {
+  map.addSource("buses", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({
+    id: "buses",
+    type: "circle",
+    source: "buses",
+    paint: {
+      "circle-color": "#2E7BFF",
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 13, 5, 16, 8],
+      "circle-opacity": 0.92,
+      // Halo branco: sobre o basemap claro o ponto precisa se separar de ruas
+      // coloridas. O stroke azul-claro antigo (0.35) só funcionava no fundo escuro.
+      "circle-stroke-width": 1.5,
+      "circle-stroke-color": "#ffffff",
+      "circle-stroke-opacity": 0.9,
     },
-  }).addControl(new AttributionControl({ compact: true }));
+  });
 }
 
 export function setBuses(map: MapLibreMap, data: BusesResponse): void {
