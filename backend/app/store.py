@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from datetime import datetime, timezone
 
@@ -7,6 +8,8 @@ import httpx
 from . import config
 from .sppo_client import fetch_positions
 from .transform import Bus, drop_stale, parse_records, to_geojson
+
+log = logging.getLogger("uvicorn.error")
 
 
 class BusStore:
@@ -70,6 +73,7 @@ class BusStore:
                 self.source_ok = True
                 backoff = config.POLL_INTERVAL_S
             except Exception:
+                log.warning("poll falhou; mantendo último snapshot", exc_info=True)
                 self.source_ok = False
                 backoff = min(backoff * 2, config.POLL_MAX_BACKOFF_S)
             await asyncio.sleep(backoff)

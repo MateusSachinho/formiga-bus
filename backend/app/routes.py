@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Query, Request
 
 router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/buses")
-async def get_buses(request: Request, linha: str | None = None):
+async def get_buses(request: Request, linha: Annotated[str | None, Query(max_length=16)] = None):
     return request.app.state.store.get_buses_geojson(linha)
 
 
