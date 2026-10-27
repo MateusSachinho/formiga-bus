@@ -8,4 +8,4 @@ services:
     healthCheckPath: /api/v1/health
     envVars:
       - key: CORS_ORIGINS
-        value: "*"
+        value: "https://formiga-bus.vercel.app"

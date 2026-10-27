@@ -158,4 +158,5 @@ esperava (ver `docs/api-notes.md`, seção 2).
 - `maplibre-gl` 6.4.0 → ^6.16 (GHSA-jrc7-96c5-q579, crítico). Worker/shared recopiados para `app/public/maplibre/`.
 - `app/vercel.json`: CSP + nosniff + HSTS + Referrer/Permissions-Policy. **`connect-src` assume backend em `*.onrender.com`; se o domínio mudar, atualizar.** CSP testada contra o build de produção (mapa renderiza).
 - Backend: `linha` limitada a 16 chars (422 acima), falha de poll agora loga, `allow_headers` vazio, Dockerfile sem root, requirements fixados.
-- Não feito (ponytail): rate limiting (Render free = 1 instância, dado público e leitura de memória); `CORS_ORIGINS` ainda `*` por default — apertar para o domínio do Vercel em `render.yaml`.
+- `CORS_ORIGINS` restrito a https://formiga-bus.vercel.app em `render.yaml`/`.env.example` (o default em `config.py` continua `*` para dev local; localhost precisa de `CORS_ORIGINS=*` ou da origem do Vite).
+- Não feito (ponytail): rate limiting (Render free = 1 instância, dado público e leitura de memória).
