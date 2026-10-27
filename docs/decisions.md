@@ -151,3 +151,11 @@ o servidor do backend. Mesclar estado entre polls resolve o mesmo problema
 sem essa janela grande, e é uma consequência direta do achado de que
 `dataInicial`/`dataFinal` não filtram pelo campo `datetime` do jeito que se
 esperava (ver `docs/api-notes.md`, seção 2).
+
+## 2026-10-27 — Auditoria de segurança/design
+
+- `innerHTML` com dados externos removido de `main.ts` (linha/id da API da prefeitura e o filtro do usuário/localStorage eram XSS). Regra: `textContent`/`replaceChildren`.
+- `maplibre-gl` 6.4.0 → ^6.16 (GHSA-jrc7-96c5-q579, crítico). Worker/shared recopiados para `app/public/maplibre/`.
+- `app/vercel.json`: CSP + nosniff + HSTS + Referrer/Permissions-Policy. **`connect-src` assume backend em `*.onrender.com`; se o domínio mudar, atualizar.** CSP testada contra o build de produção (mapa renderiza).
+- Backend: `linha` limitada a 16 chars (422 acima), falha de poll agora loga, `allow_headers` vazio, Dockerfile sem root, requirements fixados.
+- Não feito (ponytail): rate limiting (Render free = 1 instância, dado público e leitura de memória); `CORS_ORIGINS` ainda `*` por default — apertar para o domínio do Vercel em `render.yaml`.

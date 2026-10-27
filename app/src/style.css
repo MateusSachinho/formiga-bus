@@ -125,19 +125,44 @@ body {
   padding: 14px 16px;
 }
 
+/* Alvo de toque mínimo de 44px (antes ~28px) — fácil de errar com o ônibus andando. */
 #bus-panel-close {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
   background: none;
   border: none;
   color: var(--ink-dim);
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
-  padding: 4px 8px;
+}
+
+#empty-state button {
+  display: block;
+  margin: 8px auto 0;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--bus-glow);
+  outline-offset: 2px;
+}
+
+#filter-clear {
+  cursor: pointer;
 }
 
 #bus-panel-body {
+  margin: 0;
+  padding-right: 32px; /* não passa por baixo do botão fechar */
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 4px 12px;

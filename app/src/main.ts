@@ -14,7 +14,8 @@ const busPanel = document.querySelector<HTMLDivElement>("#bus-panel")!;
 const busPanelBody = document.querySelector<HTMLDListElement>("#bus-panel-body")!;
 const busPanelClose = document.querySelector<HTMLButtonElement>("#bus-panel-close")!;
 
-let currentLinha = localStorage.getItem(STORAGE_KEY) ?? "";
+// Mesmo teto do maxlength no HTML e do max_length no backend; localStorage é editável.
+let currentLinha = (localStorage.getItem(STORAGE_KEY) ?? "").slice(0, 16);
 filterInput.value = currentLinha;
 filterClear.hidden = currentLinha === "";
 
@@ -41,13 +42,29 @@ map.on("click", (e) => {
 function showBusPanel(feature: BusFeature): void {
   const { id, linha, vel, ts } = feature.properties;
   const ageS = Math.max(0, Math.round(Date.now() / 1000 - ts));
-  busPanelBody.innerHTML = `
-    <dt>linha</dt><dd>${linha || "—"}</dd>
-    <dt>veículo</dt><dd>${id}</dd>
-    <dt>velocidade</dt><dd>${Math.round(vel)} km/h</dd>
-    <dt>atualizado</dt><dd>há ${ageS}s</dd>
-  `;
+  // textContent, nunca innerHTML: linha/id vêm da API da prefeitura, não são confiáveis.
+  const rows: [string, string][] = [
+    ["linha", linha || "—"],
+    ["veículo", id],
+    ["velocidade", `${Math.round(vel)} km/h`],
+    ["atualizado", `há ${ageS}s`],
+  ];
+  busPanelBody.replaceChildren(
+    ...rows.flatMap(([k, v]) => {
+      const dt = document.createElement("dt");
+      const dd = document.createElement("dd");
+      dt.textContent = k;
+      dd.textContent = v;
+      return [dt, dd];
+    }),
+  );
   busPanel.hidden = false;
+}
+
+function setStatus(text: string): void {
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  statusBar.replaceChildren(dot, text);
 }
 
 busPanelClose.addEventListener("click", () => (busPanel.hidden = true));
@@ -65,7 +82,7 @@ async function load(fit: boolean): Promise<void> {
   } catch (err) {
     if ((err as Error).name === "AbortError") return;
     statusBar.classList.add("stale");
-    statusBar.innerHTML = `<span class="dot"></span>sem conexão`;
+    setStatus("sem conexão");
   }
 }
 
@@ -80,7 +97,7 @@ function updateStatusBar(data: BusesResponse): void {
           minute: "2-digit",
         })}`
       : `${count} ônibus · atualizado há ${age ?? "?"}s`;
-  statusBar.innerHTML = `<span class="dot"></span>${text}`;
+  setStatus(text);
 }
 
 function updateEmptyState(data: BusesResponse): void {
@@ -89,8 +106,11 @@ function updateEmptyState(data: BusesResponse): void {
     return;
   }
   emptyState.hidden = false;
-  emptyState.innerHTML = `nenhum ônibus da linha ${currentLinha} transmitindo agora <button id="show-all">ver toda a frota</button>`;
-  document.querySelector<HTMLButtonElement>("#show-all")?.addEventListener("click", () => setFilter(""));
+  // currentLinha vem do input/localStorage: texto puro, nunca HTML.
+  const showAll = document.createElement("button");
+  showAll.textContent = "ver toda a frota";
+  showAll.addEventListener("click", () => setFilter(""));
+  emptyState.replaceChildren(`nenhum ônibus da linha ${currentLinha} transmitindo agora `, showAll);
 }
 
 function setFilter(linha: string): void {
